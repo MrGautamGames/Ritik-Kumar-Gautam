@@ -679,7 +679,7 @@ body {
 
     <div class="game-container">
       <canvas class="game-canvas" id="gameCanvas" width="800" height="500"></canvas>
-      <div class="game-ui">
+      <div class="game-ui" style="display: none;">
         <div class="score">Score: <span id="score">0</span></div>
         <div class="combo">Combo: <span id="combo">0</span>x</div>
         <div class="level">Level: <span id="level">1</span></div>
@@ -688,7 +688,7 @@ body {
     </div>
 
     <div class="game-instructions">
-      🎮 <strong>WASD/Arrows:</strong> Move • <strong>SPACE:</strong> Dash • <strong>🌟 Golden Skills:</strong> +100pts • <strong>💎 Career Milestones:</strong> +500pts • <strong>⚡ Power-ups:</strong> Special abilities • <strong>🔥 Combos:</strong> Chain skills for multipliers!
+      🎮 <strong>WASD/Arrows:</strong> Move • <strong>SPACE:</strong> Dash • <strong>🌟 Golden Skills:</strong> +100pts • <strong>💎 Career Milestones:</strong> +500pts • <strong>⚡ Power-ups:</strong> Special abilities • <strong>🔥 Combos:</strong> Chain skills for multipliers! On touch devices, swipe to move and double-tap to dash.
     </div>
 
     <div class="controls">
@@ -1055,7 +1055,13 @@ class EnhancedCareerGame {
     this.powerupNames = ['Speed Boost', 'Shield', 'Magnet', 'Double Score', 'Health Pack'];
 
     this.keys = {};
+    this.targetX = null;
+    this.targetY = null;
+    this.lastTapTime = 0;
+    this.doubleTapThreshold = 300;
+
     this.setupEventListeners();
+    this.setupTouchListeners();
     this.spawnInitialItems();
     this.gameLoop();
   }
@@ -1074,6 +1080,75 @@ class EnhancedCareerGame {
     window.addEventListener('keyup', (e) => {
       this.keys[e.key.toLowerCase()] = false;
     });
+  }
+
+  setupTouchListeners() {
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = this.canvas.getBoundingClientRect();
+      const x = (touch.clientX - rect.left) * (this.canvas.width / rect.width);
+      const y = (touch.clientY - rect.top) * (this.canvas.height / rect.height);
+
+      const currentTime = new Date().getTime();
+      if (currentTime - this.lastTapTime < this.doubleTapThreshold) {
+        this.dashTo(x, y);
+      } else {
+        this.targetX = x;
+        this.targetY = y;
+      }
+      this.lastTapTime = currentTime;
+    });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = this.canvas.getBoundingClientRect();
+      this.targetX = (touch.clientX - rect.left) * (this.canvas.width / rect.width);
+      this.targetY = (touch.clientY - rect.top) * (this.canvas.height / rect.height);
+    });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.targetX = null;
+      this.targetY = null;
+    });
+  }
+
+  dashTo(targetX, targetY) {
+    if (this.player.dashCooldown > 0) return;
+
+    this.player.dashCooldown = 60;
+    this.player.invulnerable = 30;
+
+    // Create dash particles
+    for (let i = 0; i < 10; i++) {
+      this.particles.push({
+        x: this.player.x + this.player.width / 2,
+        y: this.player.y + this.player.height / 2,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.5) * 8,
+        life: 30,
+        color: '#6366f1'
+      });
+    }
+
+    // Calculate dash direction
+    let dx = targetX - this.player.x;
+    let dy = targetY - this.player.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance > 0) {
+      dx = (dx / distance) * this.player.dashDistance;
+      dy = (dy / distance) * this.player.dashDistance;
+    } else {
+      dx = this.player.dashDistance;
+      dy = 0;
+    }
+
+    this.player.x = Math.max(0, Math.min(this.canvas.width - this.player.width, this.player.x + dx));
+    this.player.y = Math.max(0, Math.min(this.canvas.height - this.player.height, this.player.y + dy));
+
+    this.screenshake = 10;
   }
 
   dash() {
@@ -1171,7 +1246,7 @@ class EnhancedCareerGame {
   update() {
     if (!this.gameRunning) return;
 
-    // Update player position
+    // Update player position from keyboard
     let moved = false;
     if (this.keys['w'] || this.keys['arrowup']) {
       this.player.y = Math.max(0, this.player.y - this.player.speed);
@@ -1188,6 +1263,23 @@ class EnhancedCareerGame {
     if (this.keys['d'] || this.keys['arrowright']) {
       this.player.x = Math.min(this.canvas.width - this.player.width, this.player.x + this.player.speed);
       moved = true;
+    }
+
+    // Update player position from touch (follow target)
+    if (this.targetX !== null && this.targetY !== null) {
+      const dx = this.targetX - (this.player.x + this.player.width / 2);
+      const dy = this.targetY - (this.player.y + this.player.height / 2);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > 5) {  // Small threshold to stop jitter
+        const angle = Math.atan2(dy, dx);
+        this.player.x += Math.cos(angle) * this.player.speed;
+        this.player.y += Math.sin(angle) * this.player.speed;
+
+        // Clamp to bounds
+        this.player.x = Math.max(0, Math.min(this.canvas.width - this.player.width, this.player.x));
+        this.player.y = Math.max(0, Math.min(this.canvas.height - this.player.height, this.player.y));
+        moved = true;
+      }
     }
 
     // Update player trail
@@ -1215,7 +1307,6 @@ class EnhancedCareerGame {
       this.comboTimer--;
     } else if (this.combo > 0) {
       this.combo = 0;
-      document.getElementById('combo').textContent = this.combo;
     }
     if (this.screenshake > 0) this.screenshake--;
 
@@ -1272,7 +1363,6 @@ class EnhancedCareerGame {
     if (this.score > this.level * 1000) {
       this.level++;
       this.player.speed = Math.min(10, this.player.speed + 0.5);
-      document.getElementById('level').textContent = this.level;
 
       // Level up effects
       for(let i = 0; i < 20; i++) {
@@ -1298,8 +1388,6 @@ class EnhancedCareerGame {
         let points = 100 * (this.combo > 1 ? this.combo : 1);
         this.score += points;
         this.spawnScoreEffect(skill.x, skill.y, points);
-        document.getElementById('score').textContent = this.score;
-        document.getElementById('combo').textContent = this.combo;
 
         // Combo effect
         if (this.combo > 2) {
@@ -1332,7 +1420,6 @@ class EnhancedCareerGame {
         this.score += points;
         this.spawnScoreEffect(milestone.x, milestone.y, points);
         this.spawnMilestoneEffect(milestone.x, milestone.y);
-        document.getElementById('score').textContent = this.score;
 
         // Milestone particles
         for(let i = 0; i < 15; i++) {
@@ -1374,8 +1461,6 @@ class EnhancedCareerGame {
           this.player.invulnerable = 60; // 1 second invulnerability
           this.screenshake = 15;
           this.combo = 0; // Reset combo on hit
-          document.getElementById('health').textContent = this.player.health;
-          document.getElementById('combo').textContent = this.combo;
 
           if (this.player.health <= 0) {
             this.gameOver();
@@ -1433,7 +1518,6 @@ class EnhancedCareerGame {
         break;
       case 'Health Pack':
         this.player.health = Math.min(this.player.maxHealth, this.player.health + 30);
-        document.getElementById('health').textContent = this.player.health;
         break;
     }
   }
@@ -1715,6 +1799,7 @@ class EnhancedCareerGame {
 
   gameOver() {
     this.gameRunning = false;
+    showFinalStats(this.score, this.level, this.combo, this.player.health);
   }
 
   gameLoop() {
@@ -1722,6 +1807,27 @@ class EnhancedCareerGame {
     this.draw();
     requestAnimationFrame(() => this.gameLoop());
   }
+}
+
+// Function to show final stats below the canvas after game over
+function showFinalStats(score, level, combo, health) {
+  let statsDiv = document.getElementById('final-stats');
+  if (!statsDiv) {
+    statsDiv = document.createElement('div');
+    statsDiv.id = 'final-stats';
+    statsDiv.style.color = 'white';
+    statsDiv.style.fontFamily = 'JetBrains Mono, monospace';
+    statsDiv.style.textAlign = 'center';
+    statsDiv.style.marginTop = '20px';
+    statsDiv.style.fontSize = '1.2rem';
+    document.querySelector('.game-container').appendChild(statsDiv);
+  }
+  statsDiv.innerHTML = `
+    <p>Score: ${score}</p>
+    <p>Level: ${level}</p>
+    <p>Combo: ${combo}</p>
+    <p>Health: ${health}</p>
+  `;
 }
 
 // Initialize enhanced game
