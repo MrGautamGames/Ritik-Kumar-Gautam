@@ -424,7 +424,7 @@ body {
 /* Action Buttons */
 .cta-section {
   text-align: center;
-  margin: 60px 0;
+  margin: 60px 0 0 0;
 }
 
 .btn-group {
@@ -637,7 +637,7 @@ body {
 
     <h1>Ritik Kumar Gautam</h1>
     <p class="subtitle">Digital Innovator & Game Creator</p>
-    <p class="tagline">Transforming ideas into interactive experiences that drive engagement and growth. From scaling YouTube channels to 15K+ subscribers to creating gaming platforms that captivate audiences.</p>
+    <p class="tagline">Transforming ideas into interactive experiences that drive engagement and growth.</p>
 
     <div class="contact-info">
       <a href="tel:+917017984397" class="contact-item">
@@ -666,7 +666,7 @@ body {
       <p>A creative force in digital innovation</p>
     </div>
     <p style="font-size: 1.1rem; text-align: center; line-height: 1.8;">
-      Visionary <strong>Digital Marketing Strategist</strong> and <strong>Game Developer</strong> with a proven track record of transforming creative concepts into high-impact digital experiences. Founded and scaled GameGini.in to become a go-to platform for gaming content, while simultaneously helping YouTube channels achieve <strong>15K+ subscribers</strong> and <strong>millions of views</strong>. Expert in bridging technical innovation with user engagement to deliver measurable business results.
+      Visionary <strong>Digital Marketing Strategist</strong> and <strong>Game Developer</strong> with a proven track record of transforming creative concepts into high-impact digital experiences. Founded GameGini.in as a platform for gaming content. Expert in bridging technical innovation with user engagement to deliver measurable business results.
     </p>
   </div>
 
@@ -761,10 +761,6 @@ body {
         <span>Blogger</span>
         <div class="skill-bar"><div class="skill-progress" style="width: 95%;"></div></div>
       </div>
-      <div class="skill-item">
-        <span>HTML/CSS</span>
-        <div class="skill-bar"><div class="skill-progress" style="width: 88%;"></div></div>
-      </div>
     </div>
 
     <div class="skill-category">
@@ -801,15 +797,12 @@ body {
         <p>Founder & Lead Developer</p>
       </div>
       <div class="project-content">
-        <p>Revolutionary gaming platform combining SEO-driven content with interactive mini-games. Achieved successful AdSense approval and growing organic reach through strategic content optimization.</p>
+        <p>Ongoing gaming platform combining SEO-driven content with interactive mini-games.</p>
         <div class="project-tags">
           <span class="tag">SEO</span>
           <span class="tag">Game Development</span>
           <span class="tag">Content Strategy</span>
           <span class="tag">Platform Building</span>
-        </div>
-        <div style="margin-top: 15px;">
-          <strong>Impact:</strong> Successful monetization + Growing user base + AdSense approval
         </div>
       </div>
     </div>
@@ -863,10 +856,9 @@ body {
     <div class="timeline-item">
       <h3 style="color: var(--primary); margin-bottom: 10px;">Founder & CEO - GameGini.in</h3>
       <p style="color: var(--gray); margin-bottom: 15px;">2023 - Present</p>
-      <p>Conceptualized and launched comprehensive gaming platform focusing on interactive content and user engagement. Successfully navigated AdSense approval process and implemented scalable SEO strategies for organic growth.</p>
+      <p>Conceptualized and launched comprehensive gaming platform focusing on interactive content and user engagement.</p>
       <ul style="margin: 15px 0; padding-left: 20px;">
         <li>Built platform from concept to launch using GDevelop and Vibe Coding</li>
-        <li>Achieved AdSense approval through strategic content optimization</li>
         <li>Developed and integrated multiple mini-games for enhanced user engagement</li>
         <li>Implemented comprehensive SEO strategy driving organic traffic growth</li>
       </ul>
@@ -984,6 +976,10 @@ body {
 
 </div>
 
+<audio id="gameMusic" loop>
+  <source src="https://www.bensound.com/bensound-music/bensound-ukulele.mp3" type="audio/mpeg">
+</audio>
+
 <!-- Scripts -->
 <script>
 // Loading screen
@@ -1059,6 +1055,8 @@ class EnhancedCareerGame {
     this.targetY = null;
     this.lastTapTime = 0;
     this.doubleTapThreshold = 300;
+    this.musicPlayed = false;
+    this.lastMoveTime = Date.now();
 
     this.setupEventListeners();
     this.setupTouchListeners();
@@ -1069,6 +1067,11 @@ class EnhancedCareerGame {
   setupEventListeners() {
     window.addEventListener('keydown', (e) => {
       this.keys[e.key.toLowerCase()] = true;
+
+      if (!this.musicPlayed) {
+        document.getElementById('gameMusic').play();
+        this.musicPlayed = true;
+      }
 
       // Dash ability
       if (e.key === ' ' && this.player.dashCooldown <= 0) {
@@ -1089,6 +1092,11 @@ class EnhancedCareerGame {
       const rect = this.canvas.getBoundingClientRect();
       const x = (touch.clientX - rect.left) * (this.canvas.width / rect.width);
       const y = (touch.clientY - rect.top) * (this.canvas.height / rect.height);
+
+      if (!this.musicPlayed) {
+        document.getElementById('gameMusic').play();
+        this.musicPlayed = true;
+      }
 
       const currentTime = new Date().getTime();
       if (currentTime - this.lastTapTime < this.doubleTapThreshold) {
@@ -1280,6 +1288,19 @@ class EnhancedCareerGame {
         this.player.y = Math.max(0, Math.min(this.canvas.height - this.player.height, this.player.y));
         moved = true;
       }
+    }
+
+    // Music control logic
+    const musicElem = document.getElementById('gameMusic');
+    if (moved) {
+      this.lastMoveTime = Date.now();
+      if (this.musicPlayed && musicElem.paused) {
+        musicElem.play();
+      }
+    }
+    const elapsed = Date.now() - this.lastMoveTime;
+    if (elapsed > 5000 && !musicElem.paused) {
+      musicElem.pause();
     }
 
     // Update player trail
@@ -1800,6 +1821,7 @@ class EnhancedCareerGame {
   gameOver() {
     this.gameRunning = false;
     showFinalStats(this.score, this.level, this.combo, this.player.health);
+    document.getElementById('gameMusic').pause();
   }
 
   gameLoop() {
