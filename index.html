@@ -1,1 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ritik Kumar Gautam - Interactive Resume</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --secondary: #f59e0b;
+  --accent: #10b981;
+  --danger: #ef4444;
+  --dark: #0f172a;
+  --light: #f8fafc;
+  --gray: #64748b;
+  --glass: rgba(255,255,255,0.13);
+  --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
 
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background: var(--dark);
+  color: var(--light);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Resume Container */
+.resume-container {
+  max-width: 950px;
+  margin: 40px auto;
+  background: rgba(255,255,255,0.055);
+  border-radius: 24px;
+  padding: 32px 24px;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+  backdrop-filter: blur(6px);
+  position: relative;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 16px;
+}
+.profile-pic {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--primary);
+  object-fit: cover;
+}
+.header-text h1 {
+  font-size: 2.1rem;
+  font-weight: bold;
+  color: var(--primary);
+  margin-bottom: 3px;
+  font-family: 'Inter', sans-serif;
+}
+.header-text p {
+  margin: 3px 0;
+  font-size: 13.5px;
+}
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h2 {
+  font-size: 1.32rem;
+  margin-bottom: 5px;
+  color: var(--primary);
+  border-bottom: 1px solid #eee2;
+  padding-bottom: 3px;
+  font-weight: bold;
+}
+ul, li { margin: 0; padding: 0; list-style: none; }
+li { margin-bottom: 6px; line-height: 1.52;}
+.section { margin-bottom: 24px; }
+
+.download-btn, .contact-btn {
+  background: var(--primary);
+  color: #fff;
+  padding: 9px 23px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-decoration: none;
+  margin: 10px 8px 0 0;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.22s;
+}
+.download-btn:hover, .contact-btn:hover { background: var(--primary-dark); }
+
+.fullscreen-btn {
+  background: var(--secondary);
+  color: #fff;
+  padding: 10px 25px;
+  border-radius: 9px;
+  font-size: 1.13rem;
+  font-weight: bold;
+  border: none;
+  margin-bottom: 17px;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+.fullscreen-btn:hover { background: #e08c00; }
+
+/* Game Styles */
+.game-container {
+  width: 100%;
+  max-width: 900px;
+  height: 320px;
+  background: #201e2e;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  margin: 12px auto 25px auto;
+  border: 2px solid var(--primary);
+  box-shadow: 0 10px 20px #2228;
+  transition: height 0.4s;
+}
+.fullscreen {
+  position: fixed !important;
+  z-index: 9999 !important;
+  top: 0; left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.game-ui {
+  position: absolute;
+  top: 14px; left: 16px; right: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 3vw;
+  font-family: 'JetBrains Mono', monospace;
+  color: #f8f8f8;
+  font-weight: bold;
+  z-index: 10;
+}
+.game-ui > div {
+  background: rgba(44,44,44,0.35);
+  padding: 7px 16px;
+  border-radius: 7px;
+  font-size: 1rem;
+  border: 1.5px solid var(--primary);
+  box-shadow: 0 2px 6px #2224;
+}
+
+/* Canvas */
+.game-canvas {
+  display: block;
+  width: 100%; height: 100%;
+  border-radius: 14px;
+}
+
+/* Game Instructions */
+.game-instructions {
+  font-size: 1.02rem;
+  text-align: center;
+  color: var(--gray);
+  margin-bottom: 10px;
+}
+
+/* Controls Display */
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 13px;
+  margin-bottom: 10px;
+}
+.control-key {
+  background: var(--glass); border: 1.3px solid #fff2;
+  border-radius: 5px; padding: 7px 15px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem; font-weight: 500;
+}
+
+/* ATS PDF resume preview */
+.resume-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  background: #fff;
+  color: #161616;
+  max-width: 660px;
+  margin: 26px auto;
+  border-radius: 16px;
+  box-shadow: 0 6px 26px #2223;
+  border: 1px solid #d3d3d3;
+  font-family: 'Inter', Arial, sans-serif;
+  padding: 20px 30px;
+}
+.resume-preview .profile-pic {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2px solid #6366f1;
+  margin-right: 22px;
+  margin-top: 7px;
+}
+.resume-details { flex: 1; }
+.resume-contact a { color: #6366f1; text-decoration: underline;}
+.resume-details h1 { color: #222; font-size: 1.48rem; margin: 0; font-weight: bold;}
+.resume-details h2 { color: #6366f1; font-size: 1.09rem; border-bottom: none; padding-bottom: 0; margin: 23px 0 0 0; }
+.resume-details ul { margin-left: 15px; margin-bottom: 0;}
+.resume-details p { margin: 8px 0 0 0; font-size: 1.02rem; }
+.resume-contact { font-size: 1rem; margin: 9px 0 2px 0;}
+.resume-contact span { margin-right: 12px; }
+
+@media(max-width:900px){
+  .resume-container { max-width: 99vw; }
+  .game-container { max-width: 99vw; }
+  .resume-preview { padding: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="resume-container">
+  <div class="header">
+    <img class="profile-pic" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh1dl8_zVtd2Q80c2ciXU2HaQpYPzyVlsLv9z3t8_aL77LjvPW70TkTRTo_EIomMJpP-vS-7yhBuKn2KnYfi_41Fzh4qw2V26jD6pWrVnyP31lWAfGpRveUHBdW37h22Y95DMAwtIZtdd-0WuqaQabF3ZOmkFu1QBRQ74KrU9xwvU3yTATQkmQAaDCuzQa1/s1855/129903216_744416526189139_7262904262601300711_n.jpg" alt="Ritik Kumar Gautam">
+    <div class="header-text">
+      <h1>Ritik Kumar Gautam</h1>
+      <p><span>📱</span> <a href="tel:+917017984397">7017984397</a> <span>✉️</span> <a href="mailto:entrepreneurritik@gmail.com">entrepreneurritik@gmail.com</a></p>
+      <p><span>🌐</span> <a href="https://gamegini.in" target="_blank">GameGini.in</a> <span>🎥</span> <a href="https://www.youtube.com/@TechyRitik/videos" target="_blank">TechyRitik</a></p>
+    </div>
+  </div>
+  <div class="section">
+    <h2>Professional Summary</h2>
+    <p>Creative and results-driven digital marketer, content creator, and aspiring game developer. Founder of GameGini.in, focused on AdSense approvals, organic reach, and interactive game development. Proven ability to scale clients and projects, including YouTube channels achieving 15K+ subscribers and millions of views.</p>
+  </div>
+  <div class="section">
+    <h2>Experience & Projects</h2>
+    <ul>
+      <li><strong>Team Leader – Recruitment Call Center:</strong> Led 10-member team for Paytm QR code hiring. Integrated WhatsApp API.</li>
+      <li><strong>Founder & Project Lead – GameGini.in:</strong> SEO-driven gaming website with mini-games using GDevelop & Vibe Coding.</li>
+      <li><strong>YouTube Content Creator – TechyRitik:</strong> Helped HeroBoys reach 15K+ subscribers & millions of views.</li>
+    </ul>
+  </div>
+
+  <!-- Fullscreen Game Button -->
+  <button class="fullscreen-btn" onclick="startFullScreenGame()">🚀 Help Ritik Build Himself</button>
+
+  <!-- Career Quest Game -->
+  <div class="section">
+    <h2>Career Quest Game</h2>
+    <div class="game-instructions">
+      <b>Controls:</b> ← ↑ → ↓ or WASD | Collect <span style="color:#f59e0b">⭐</span> skills & <span style="color:#3b82f6">💎</span> milestones<br>
+      Avoid <span style="color:#ef4444">❌</span> challenges. Press <b>SPACE</b> for Dash!
+    </div>
+    <div class="game-container" id="gameContainer">
+      <canvas class="game-canvas" id="gameCanvas" width="900" height="320"></canvas>
+      <div class="game-ui">
+        <div class="score">Score: <span id="score">0</span></div>
+        <div class="level">Level: <span id="level">1</span></div>
+        <div class="health">Health: <span id="health">100</span></div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="control-key">W ↑</div>
+      <div class="control-key">A ←</div>
+      <div class="control-key">S ↓</div>
+      <div class="control-key">D →</div>
+      <div class="control-key">SPACE - Dash</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Education</h2>
+    <ul>
+      <li>BCA – Amity University Online (Expected 2027)</li>
+      <li>12th – CBSE (Science), 2021</li>
+      <li>10th – CBSE, 2019</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>Skills</h2>
+    <ul>
+      <li>SEO, SEM, SMM (Meta Ads), SMO</li>
+      <li>Blogger, WordPress, YouTube Growth</li>
+      <li>Python, GDevelop, Vibe Coding, Canva</li>
+      <li>Google Analytics, Search Console</li>
+      <li>Team Leadership & Recruitment Ops</li>
+    </ul>
+  </div>
+  <div class="section">
+    <h2>Hobbies & Interests</h2>
+    <ul>
+      <li>Video creation & content experimentation</li>
+      <li>Innovative project exploration</li>
+      <li>Cooking as a creative outlet</li>
+    </ul>
+  </div>
+  <div class="section">
+    <button class="contact-btn" onclick="window.open('mailto:entrepreneurritik@gmail.com')">Email Me</button>
+    <button class="contact-btn" onclick="window.open('tel:+917017984397')">Call Me</button>
+    <button class="download-btn" onclick="downloadResume()">Download Resume</button>
+  </div>
+  <div id="gameCompletionMsg" style="display:none; font-size:1.3rem; color:#08d87a; text-align:center; margin-top:25px; font-weight:bold;"></div>
+</div>
+
+<!-- ATS Resume Preview (for PDF export) -->
+<div class="resume-preview" id="atsResumePreview" style="display:none;">
+  <img class="profile-pic" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh1dl8_zVtd2Q80c2ciXU2HaQpYPzyVlsLv9z3t8_aL77LjvPW70TkTRTo_EIomMJpP-vS-7yhBuKn2KnYfi_41Fzh4qw2V26jD6pWrVnyP31lWAfGpRveUHBdW37h22Y95DMAwtIZtdd-0WuqaQabF3ZOmkFu1QBRQ74KrU9xwvU3yTATQkmQAaDCuzQa1/s1855/129903216_744416526189139_7262904262601300711_n.jpg" alt="Profile">
+  <div class="resume-details">
+    <h1>Ritik Kumar Gautam</h1>
+    <div class="resume-contact">
+      <span>Phone: <a href="tel:+917017984397">7017984397</a></span>
+      <span>Email: <a href="mailto:entrepreneurritik@gmail.com">entrepreneurritik@gmail.com</a></span>
+      <span>Website: <a href="https://gamegini.in">gamegini.in</a></span>
+      <span>YouTube: <a href="https://www.youtube.com/@TechyRitik/videos">TechyRitik</a></span>
+    </div>
+    <h2>Professional Summary</h2>
+    <p>Creative and results-driven digital marketer, content creator, and aspiring game developer.
+       Founder of GameGini.in, focused on AdSense approvals, organic reach, and interactive game
+       development. Proven ability to scale clients and projects, including YouTube channels achieving 15K+ subscribers and millions of views.
+    </p>
+    <h2>Experience</h2>
+    <ul>
+      <li><b>Team Leader, Paytm QR Code Hiring (2022):</b> Led 10-member team for recruitment, integrated WhatsApp API to optimize communication.</li>
+      <li><b>Founder & Project Lead, GameGini.in (2023–present):</b> SEO-driven gaming website built with GDevelop & Vibe Coding. Achieved AdSense approval, grew organic reach.</li>
+      <li><b>YouTube Content Creator, TechyRitik:</b> Scaled HeroBoys to 15K+ subscribers & millions of views via strategic content.</li>
+    </ul>
+    <h2>Education</h2>
+    <ul>
+      <li>BCA, Amity University Online (Expected 2027)</li>
+      <li>12th, CBSE (Science), 2021</li>
+      <li>10th, CBSE, 2019</li>
+    </ul>
+    <h2>Core Skills</h2>
+    <ul>
+      <li>SEO, SEM, SMM (Meta Ads), SMO, Google Analytics</li>
+      <li>Blogger, WordPress, Python, GDevelop, Canva, Vibe Coding</li>
+      <li>Team Leadership, Recruitment Operations</li>
+    </ul>
+    <h2>Hobbies & Interests</h2>
+    <ul>
+      <li>Video Content Creation, Project Exploration, Cooking</li>
+    </ul>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// === Game Logic ===
+const player = {x:60, y:220, size:38, dx:0, dy:0, speed:5, health:100, dash:0};
+let skills=[], challenges=[], milestones=[];
+let score=0, level=1, running=true, collected=0, totalCollects=0;
+let gameContainer = document.getElementById('gameContainer');
+let gameCanvas = document.getElementById('gameCanvas');
+let ctx = gameCanvas.getContext('2d');
+
+// Set up skills, milestones and challenges
+function newSkill(){
+  const names=["SEO","Python","GameDev","Leader","Design","Strategy"];
+  let i=Math.floor(Math.random()*names.length);
+  return {
+    x: Math.random()*(gameCanvas.width-50)+20,
+    y: Math.random()*(gameCanvas.height-70)+30,
+    size:32,
+    name: names[i],
+    collected:false
+  }
+}
+function newMilestone(){
+  const names=["Adsense","15KSubs","GameGini","HeroBoys"];
+  let i=Math.floor(Math.random()*names.length);
+  return {
+    x: Math.random()*(gameCanvas.width-70)+30,
+    y: Math.random()*(gameCanvas.height-70)+30,
+    size:38,
+    name: names[i],
+    collected:false
+  }
+}
+function newChallenge(){
+  const names=["Deadline","Bug","Burnout","Complex"];
+  let i=Math.floor(Math.random()*names.length);
+  return {
+    x: Math.random()*(gameCanvas.width-60)+20,
+    y: Math.random()*(gameCanvas.height-60)+20,
+    size:35,
+    name: names[i],
+    dx: (Math.random()>0.5?2:-2)*Math.random()+1,
+    dy: (Math.random()>0.5?2:-2)*Math.random()+1,
+  }
+}
+function resetGame() {
+  running=true; score=0; level=1; collected=0; totalCollects=0; player.health=100; player.x=60; player.y=220;
+  skills=[]; milestones=[]; challenges=[];
+  for(let i=0;i<7;i++)skills.push(newSkill()); totalCollects=skills.length;
+  for(let i=0;i<2;i++)milestones.push(newMilestone()); totalCollects += milestones.length;
+  for(let i=0;i<3;i++)challenges.push(newChallenge());
+  document.getElementById('score').textContent=score;
+  document.getElementById('level').textContent=level;
+  document.getElementById('health').textContent=player.health;
+  document.getElementById('gameCompletionMsg').style.display='none';
+}
+resetGame();
+
+// === Game Drawing ===
+function drawGame(){
+  ctx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
+
+  // Draw grid
+  ctx.strokeStyle="#25234c";
+  for(let x=0;x<gameCanvas.width;x+=60){
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,gameCanvas.height); ctx.stroke();
+  }
+  for(let y=0;y<gameCanvas.height;y+=60){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(gameCanvas.width,y); ctx.stroke();
+  }
+
+  // Player
+  ctx.save();
+  ctx.fillStyle=running?"#6366f1":"#383838";
+  ctx.beginPath();
+  ctx.arc(player.x,player.y,player.size/2,0,2*Math.PI);
+  ctx.fill();
+
+  ctx.fillStyle="#fff";
+  ctx.font = "bold 18px Inter";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("R",player.x,player.y+2);
+  ctx.restore();
+
+  // Skills
+  for(let o of skills){
+    if(!o.collected){
+      ctx.save();
+      ctx.translate(o.x,o.y);
+      ctx.rotate(Math.sin(Date.now()/800 + o.x)*0.2);
+      ctx.fillStyle="#f59e0b";
+      ctx.beginPath();
+      ctx.arc(0,0,o.size/2,0,2*Math.PI);
+      ctx.fill();
+      ctx.font = "bold 13px Arial";
+      ctx.fillStyle="#fff";
+      ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText("⭐",0,0);
+      ctx.font = "11px Arial";
+      ctx.fillStyle="#fff";
+      ctx.fillText(o.name,0,o.size/2 + 13);
+      ctx.restore();
+    }
+  }
+  // Milestones
+  for(let o of milestones){
+    if(!o.collected){
+      ctx.save();
+      ctx.translate(o.x,o.y);
+      ctx.rotate(Math.sin(Date.now()/700 + o.y)*0.3);
+      ctx.fillStyle="#3b82f6";
+      ctx.beginPath();
+      ctx.arc(0,0,o.size/2,0,2*Math.PI);
+      ctx.fill();
+      ctx.font = "bold 14px Arial";
+      ctx.fillStyle="#fff";
+      ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText("💎",0,0);
+      ctx.font = "12px Arial";
+      ctx.fillText(o.name,0,o.size/2 + 14);
+      ctx.restore();
+    }
+  }
+  // Challenges
+  for(let o of challenges){
+    ctx.save();
+    ctx.translate(o.x,o.y);
+    ctx.rotate(Date.now()/550%2*Math.PI);
+    ctx.fillStyle="#ef4444";
+    ctx.beginPath();
+    ctx.arc(0,0,o.size/2,0,2*Math.PI);
+    ctx.fill();
+    ctx.font = "bold 14px Arial";
+    ctx.fillStyle="#fff";
+    ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText("❌",0,0);
+    ctx.font = "11px Arial";
+    ctx.fillText(o.name,0,o.size/2 + 12);
+    ctx.restore();
+  }
+}
+
+// === Game Physics / Controls ===
+const keys={};
+document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.keyCode===32)player.dash=15;});
+document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+function updateGame(){
+  if(!running)return;
+
+  // Player movement
+  let dx=0,dy=0;
+  if(keys["arrowleft"]||keys["a"])dx=-player.speed;
+  if(keys["arrowright"]||keys["d"])dx=player.speed;
+  if(keys["arrowup"]||keys["w"])dy=-player.speed;
+  if(keys["arrowdown"]||keys["s"])dy=player.speed;
+
+  if(player.dash>0){
+    dx*=2; dy*=2; player.dash--; // Dash multiplies movement
+  }
+  player.x+=dx; player.y+=dy;
+  player.x=Math.max(player.size/2, Math.min(gameCanvas.width-player.size/2, player.x));
+  player.y=Math.max(player.size/2, Math.min(gameCanvas.height-player.size/2, player.y));
+
+  // Move challenges
+  for(let o of challenges){
+    o.x += o.dx; o.y += o.dy;
+    if(o.x<o.size/2||o.x>gameCanvas.width-o.size/2)o.dx*=-1;
+    if(o.y<o.size/2||o.y>gameCanvas.height-o.size/2)o.dy*=-1;
+  }
+
+  // Collisions (skills)
+  for(let o of skills){
+    if(!o.collected&&dist(o.x,o.y,player.x,player.y)<(player.size+o.size)/2){
+      o.collected=true; collected++; score+=100;
+      document.getElementById('score').textContent=score;
+    }
+  }
+  for(let o of milestones){
+    if(!o.collected&&dist(o.x,o.y,player.x,player.y)<(player.size+o.size)/2){
+      o.collected=true; collected++; score+=500;
+      document.getElementById('score').textContent=score;
+    }
+  }
+  // Collisions (challenges)
+  for(let o of challenges){
+    if(dist(o.x,o.y,player.x,player.y)<(player.size+o.size)/2){
+      player.health-=5; document.getElementById('health').textContent=player.health;
+      player.x+=o.dx*5; player.y+=o.dy*5; // knockback
+      if(player.health<=0)running=false;
+    }
+  }
+  // Level progression
+  if(score>=level*600){level++; document.getElementById('level').textContent=level; player.speed++;}
+  // Game completion
+  if(collected>=totalCollects)endGame();
+}
+
+function dist(x1,y1,x2,y2){ return Math.sqrt((x1-x2)**2+(y1-y2)**2);}
+function endGame(){
+  running=false;
+  let percent = Math.round((collected/totalCollects)*100);
+  document.getElementById('gameCompletionMsg').style.display='block';
+  document.getElementById('gameCompletionMsg').innerHTML = `🎉 <b>Thank You for Building Ritik!</b> <br>
+    You completed ${percent}% of the quest!<br>
+    <span style="font-size:1.12em; color:#0ad;">Score: ${score} | Level: ${level}</span>`;
+}
+
+// Animate
+function gameLoop(){
+  updateGame(); drawGame();
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+// Fullscreen Game Handler
+function startFullScreenGame(){
+  gameContainer.classList.add("fullscreen");
+  gameCanvas.width = window.innerWidth;
+  gameCanvas.height = window.innerHeight;
+  resetGame();
+  setTimeout(()=>{drawGame();},100);
+  document.body.style.overflow='hidden';
+}
+document.addEventListener('keydown', function(e){
+  if(e.key==="Escape"){
+    if(gameContainer.classList.contains("fullscreen")){
+      gameContainer.classList.remove("fullscreen");
+      gameCanvas.width = 900; gameCanvas.height = 320;
+      document.body.style.overflow='';
+      resetGame();
+      setTimeout(()=>{drawGame();},120);
+    }
+  }
+});
+
+// PDF ATS Resume Export
+function downloadResume(){
+  // Show preview to copy to canvas
+  let pDiv = document.getElementById("atsResumePreview");
+  pDiv.style.display = 'block';
+  setTimeout(() => {
+  const { jsPDF } = window.jspdf, doc = new jsPDF('p', 'pt', 'a4');
+  // Render profile image
+  let imgURL = pDiv.querySelector('.profile-pic').src;
+  let img = new Image();
+  img.crossOrigin = "";
+  img.onload = function() {
+    doc.addImage(img, 'JPEG', 40, 36, 66, 66);
+    // Name + Contact
+    doc.setFont("Inter", "bold"); doc.setFontSize(18);
+    doc.text("Ritik Kumar Gautam", 120, 52);
+    doc.setFont("Inter", "normal"); doc.setFontSize(11);
+    doc.text("Phone: 7017984397 | Email: entrepreneurritik@gmail.com", 120, 70);
+    doc.text("Website: gamegini.in | YouTube: TechyRitik", 120, 87);
+    // Summary
+    doc.setFont("Inter", "bold"); doc.setFontSize(13);
+    doc.text("Professional Summary", 40, 120);
+    doc.setFont("Inter", "normal"); doc.setFontSize(10);
+    doc.text(pDiv.querySelector("p").textContent, 40, 136, {maxWidth:500});
+    // Experience
+    doc.setFont("Inter", "bold"); doc.setFontSize(13);
+    doc.text("Experience", 40, 162);
+    doc.setFont("Inter", "normal"); doc.setFontSize(10);
+    let y = 178;
+    pDiv.querySelectorAll("ul")[0].querySelectorAll("li").forEach(li=>{
+      doc.text("\u2022 "+li.textContent, 50, y, {maxWidth:490}); y+=16;
+    });
+    // Education
+    doc.setFont("Inter", "bold"); doc.setFontSize(13); doc.text("Education", 40, y+18); y+=35;
+    pDiv.querySelectorAll("ul")[1].querySelectorAll("li").forEach(li=>{
+      doc.text("\u2022 "+li.textContent, 50, y, {maxWidth:490}); y+=16;
+    });
+    // Skills
+    doc.setFont("Inter", "bold"); doc.setFontSize(13); doc.text("Core Skills", 40, y+18); y+=35;
+    pDiv.querySelectorAll("ul")[2].querySelectorAll("li").forEach(li=>{
+      doc.text("\u2022 "+li.textContent, 50, y, {maxWidth:490}); y+=16;
+    });
+    // Interests
+    doc.setFont("Inter", "bold"); doc.setFontSize(13); doc.text("Hobbies & Interests", 40, y+18); y+=35;
+    pDiv.querySelectorAll("ul")[3].querySelectorAll("li").forEach(li=>{
+      doc.text("\u2022 "+li.textContent, 50, y, {maxWidth:490}); y+=16;
+    });
+    doc.save("Ritik_Kumar_Gautam_Resume.pdf");
+    pDiv.style.display = 'none';
+  };
+  img.src = imgURL;
+  },300);
+}
+</script>
+</body>
+</html>
