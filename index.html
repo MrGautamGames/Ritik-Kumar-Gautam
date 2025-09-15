@@ -608,6 +608,102 @@ body {
   50% { transform: translateY(-30px) scale(1.2); }
   100% { opacity: 0; transform: translateY(-80px) scale(1); }
 }
+
+/* PDF Print Fixes - Clean multi-page layout */
+@media print {
+  body {
+    background: #fff !important;
+    color: #222 !important;
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+
+  /* Hide interactive elements in PDF */
+  .bg-animation, .particle, .game-container, .game-instructions, 
+  .game-ui, #loading, .controls {
+    display: none !important;
+  }
+
+  /* Clean up cards for PDF */
+  .glass-card {
+    background: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+    margin: 15px 0 !important;
+    padding: 20px !important;
+  }
+
+  .resume-container {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Fix text colors for PDF */
+  h1, h2, h3, h4 {
+    color: #222 !important;
+  }
+
+  .hero h1 {
+    background: none !important;
+    -webkit-text-fill-color: #222 !important;
+    color: #222 !important;
+  }
+
+  /* Contact info styling for PDF */
+  .contact-info {
+    flex-direction: row !important;
+    justify-content: center !important;
+    gap: 15px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .contact-item {
+    background: none !important;
+    color: #222 !important;
+    border: 1px solid #666 !important;
+    border-radius: 15px !important;
+    padding: 8px 12px !important;
+    text-decoration: none !important;
+  }
+
+  /* Timeline fixes */
+  .timeline::before {
+    background: #666 !important;
+  }
+
+  .timeline-marker {
+    background: #666 !important;
+    border-color: #fff !important;
+  }
+
+  /* Skill bars */
+  .skill-bar {
+    background: #eee !important;
+  }
+
+  .skill-progress {
+    background: #666 !important;
+  }
+
+  /* Project cards */
+  .project-card::before {
+    background: #666 !important;
+  }
+
+  /* Page breaks for better PDF layout */
+  .skills-section {
+    page-break-before: always;
+  }
+
+  /* Ensure readable spacing */
+  .timeline-item, .project-card, .skill-category, .education-card {
+    margin-bottom: 20px !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -677,18 +773,19 @@ body {
       <p>Experience my journey through an epic skill-collecting adventure with power-ups, combo systems, and boss battles!</p>
     </div>
 
-    <div class="game-container">
-      <canvas class="game-canvas" id="gameCanvas" width="800" height="500"></canvas>
+        <div class="game-container">
+      <canvas class="game-canvas" id="tapGameCanvas" width="800" height="500"></canvas>
       <div class="game-ui">
-        <div class="score">Score: <span id="score">0</span></div>
-        <div class="combo">Combo: <span id="combo">0</span>x</div>
-        <div class="level">Level: <span id="level">1</span></div>
-        <div class="health">Health: <span id="health">100</span></div>
+        <div class="score">Score: <span id="gameScore">0</span></div>
+        <div class="combo">Skills: <span id="skillsCollected">0</span></div>
+        <div class="level">Level: <span id="gameLevel">1</span></div>
+        <div class="health">Energy: <span id="gameEnergy">100</span>%</div>
       </div>
     </div>
 
     <div class="game-instructions">
-      🎮 <strong>WASD/Arrows:</strong> Move • <strong>SPACE:</strong> Dash • <strong>🌟 Golden Skills:</strong> +100pts • <strong>💎 Career Milestones:</strong> +500pts • <strong>⚡ Power-ups:</strong> Special abilities • <strong>🔥 Combos:</strong> Chain skills for multipliers!
+      🎯 <strong>TAP to collect skills!</strong> No scrolling needed - just tap/click on falling skills. 
+      Collect skills to gain energy, miss them and lose energy. Perfect for mobile and desktop!
     </div>
 
     <div class="controls">
@@ -990,11 +1087,14 @@ body {
 // Loading screen
 window.addEventListener('load', function() {
   setTimeout(() => {
-    document.getElementById('loading').style.opacity = '0';
-    setTimeout(() => {
-      document.getElementById('loading').style.display = 'none';
-    }, 500);
-  }, 1500);
+    const loader = document.getElementById('loading');
+    if (loader) {
+      loader.style.opacity = '0';
+      setTimeout(() => {
+        loader.style.display = 'none';
+      }, 500);
+    }
+  }, 500);
 });
 
 // Create floating particles
@@ -1016,906 +1116,267 @@ function createParticles() {
   }
 }
 
-// Enhanced Career Quest Game with Super Fun Features
-class EnhancedCareerGame {
+// TAP-BASED SKILL COLLECTOR GAME - NO SCROLLING CONFLICTS
+class TapSkillCollectorGame {
   constructor() {
-    this.canvas = document.getElementById('gameCanvas');
+    this.canvas = document.getElementById('tapGameCanvas');
+    if (!this.canvas) return;
+
     this.ctx = this.canvas.getContext('2d');
     this.canvas.width = 800;
     this.canvas.height = 500;
 
-    this.player = {
-      x: 50,
-      y: 400,
-      width: 30,
-      height: 30,
-      speed: 6,
-      health: 100,
-      maxHealth: 100,
-      dashCooldown: 0,
-      dashDistance: 80,
-      invulnerable: 0,
-      trail: []
-    };
+    this.gameRunning = false;
+    this.score = 0;
+    this.skillsCollected = 0;
+    this.energy = 100;
+    this.level = 1;
+    this.skillSpeed = 2;
+    this.spawnRate = 0.015;
 
     this.skills = [];
-    this.challenges = [];
-    this.milestones = [];
-    this.powerups = [];
     this.particles = [];
-    this.score = 0;
-    this.level = 1;
-    this.combo = 0;
-    this.comboTimer = 0;
-    this.gameRunning = true;
-    this.screenshake = 0;
 
-    this.skillNames = ['SEO', 'Python', 'GameDev', 'Leadership', 'Marketing', 'Analytics', 'Design', 'Strategy', 'AI', 'Blockchain'];
-    this.challengeNames = ['Deadline', 'Bug', 'Burnout', 'Complexity', 'Scope Creep', 'Tech Debt'];
-    this.milestoneNames = ['15K Subs', 'AdSense', 'Team Lead', 'GameGini', 'Viral Video', 'Series A', 'IPO'];
-    this.powerupNames = ['Speed Boost', 'Shield', 'Magnet', 'Double Score', 'Health Pack'];
+    this.skillTypes = [
+      {name: 'SEO', color: '#6366f1', points: 10, icon: '🔍'},
+      {name: 'Python', color: '#3776ab', points: 15, icon: '🐍'},
+      {name: 'JavaScript', color: '#f7df1e', points: 12, icon: '⚡'},
+      {name: 'GameDev', color: '#00d2ff', points: 20, icon: '🎮'},
+      {name: 'Leadership', color: '#ff6b6b', points: 25, icon: '👑'},
+      {name: 'Marketing', color: '#4ecdc4', points: 18, icon: '📈'},
+      {name: 'Design', color: '#ff9ff3', points: 16, icon: '🎨'},
+      {name: 'Analytics', color: '#54a0ff', points: 14, icon: '📊'}
+    ];
 
-    this.keys = {};
     this.setupEventListeners();
-    this.spawnInitialItems();
-    this.gameLoop();
+    this.startGame();
+    this.animate();
   }
 
   setupEventListeners() {
-    window.addEventListener('keydown', (e) => {
-      this.keys[e.key.toLowerCase()] = true;
-
-      // Dash ability
-      if (e.key === ' ' && this.player.dashCooldown <= 0) {
-        this.dash();
-        e.preventDefault();
-      }
+    this.canvas.addEventListener('click', (e) => this.handleClick(e));
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      this.handleTouch(e);
     });
-
-    window.addEventListener('keyup', (e) => {
-      this.keys[e.key.toLowerCase()] = false;
-    });
+    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  dash() {
-    if (this.player.dashCooldown > 0) return;
-
-    this.player.dashCooldown = 60; // 1 second at 60fps
-    this.player.invulnerable = 30; // 0.5 seconds invulnerability
-
-    // Create dash particles
-    for(let i = 0; i < 10; i++) {
-      this.particles.push({
-        x: this.player.x + this.player.width/2,
-        y: this.player.y + this.player.height/2,
-        vx: (Math.random() - 0.5) * 8,
-        vy: (Math.random() - 0.5) * 8,
-        life: 30,
-        color: '#6366f1'
-      });
-    }
-
-    // Dash movement
-    let dashX = 0, dashY = 0;
-    if (this.keys['w'] || this.keys['arrowup']) dashY = -this.player.dashDistance;
-    if (this.keys['s'] || this.keys['arrowdown']) dashY = this.player.dashDistance;
-    if (this.keys['a'] || this.keys['arrowleft']) dashX = -this.player.dashDistance;
-    if (this.keys['d'] || this.keys['arrowright']) dashX = this.player.dashDistance;
-
-    if (dashX === 0 && dashY === 0) {
-      dashX = this.player.dashDistance; // Default dash right
-    }
-
-    this.player.x = Math.max(0, Math.min(this.canvas.width - this.player.width, this.player.x + dashX));
-    this.player.y = Math.max(0, Math.min(this.canvas.height - this.player.height, this.player.y + dashY));
-
-    this.screenshake = 10;
-  }
-
-  spawnInitialItems() {
-    // Spawn skills
-    for(let i = 0; i < 8; i++) {
-      this.skills.push({
-        x: 200 + Math.random() * 500,
-        y: 50 + Math.random() * 300,
-        width: 25,
-        height: 25,
-        name: this.skillNames[Math.floor(Math.random() * this.skillNames.length)],
-        collected: false,
-        rotation: 0,
-        bounce: Math.random() * Math.PI * 2
-      });
-    }
-
-    // Spawn challenges
-    for(let i = 0; i < 4; i++) {
-      this.challenges.push({
-        x: 300 + Math.random() * 400,
-        y: 100 + Math.random() * 250,
-        width: 30,
-        height: 30,
-        name: this.challengeNames[Math.floor(Math.random() * this.challengeNames.length)],
-        vx: (Math.random() - 0.5) * 3,
-        vy: (Math.random() - 0.5) * 3,
-        rotation: 0
-      });
-    }
-
-    // Spawn milestones
-    for(let i = 0; i < 3; i++) {
-      this.milestones.push({
-        x: 600 + Math.random() * 150,
-        y: 100 + Math.random() * 200,
-        width: 35,
-        height: 35,
-        name: this.milestoneNames[Math.floor(Math.random() * this.milestoneNames.length)],
-        collected: false,
-        scale: 1,
-        glow: 0
-      });
-    }
-
-    // Spawn powerups
-    for(let i = 0; i < 2; i++) {
-      this.powerups.push({
-        x: 150 + Math.random() * 500,
-        y: 150 + Math.random() * 200,
-        width: 28,
-        height: 28,
-        name: this.powerupNames[Math.floor(Math.random() * this.powerupNames.length)],
-        collected: false,
-        pulse: 0
-      });
-    }
-  }
-
-  update() {
+  handleClick(e) {
     if (!this.gameRunning) return;
 
-    // Update player position
-    let moved = false;
-    if (this.keys['w'] || this.keys['arrowup']) {
-      this.player.y = Math.max(0, this.player.y - this.player.speed);
-      moved = true;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+
+    this.checkSkillCollision(x, y);
+  }
+
+  handleTouch(e) {
+    if (!this.gameRunning) return;
+
+    const rect = this.canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = (touch.clientX - rect.left) * (this.canvas.width / rect.width);
+    const y = (touch.clientY - rect.top) * (this.canvas.height / rect.height);
+
+    this.checkSkillCollision(x, y);
+  }
+
+  checkSkillCollision(x, y) {
+    for (let i = this.skills.length - 1; i >= 0; i--) {
+      const skill = this.skills[i];
+      const distance = Math.sqrt((x - skill.x) ** 2 + (y - skill.y) ** 2);
+
+      if (distance < skill.radius) {
+        this.collectSkill(skill, i);
+        this.createCollectionParticles(skill.x, skill.y, skill.color);
+        return;
+      }
     }
-    if (this.keys['s'] || this.keys['arrowdown']) {
-      this.player.y = Math.min(this.canvas.height - this.player.height, this.player.y + this.player.speed);
-      moved = true;
-    }
-    if (this.keys['a'] || this.keys['arrowleft']) {
-      this.player.x = Math.max(0, this.player.x - this.player.speed);
-      moved = true;
-    }
-    if (this.keys['d'] || this.keys['arrowright']) {
-      this.player.x = Math.min(this.canvas.width - this.player.width, this.player.x + this.player.speed);
-      moved = true;
+  }
+
+  collectSkill(skill, index) {
+    this.score += skill.points;
+    this.skillsCollected++;
+    this.energy = Math.min(100, this.energy + 3);
+
+    this.skills.splice(index, 1);
+
+    if (this.skillsCollected % 10 === 0) {
+      this.level++;
+      this.skillSpeed += 0.3;
+      this.spawnRate += 0.003;
     }
 
-    // Update player trail
-    if (moved) {
-      this.player.trail.push({
-        x: this.player.x,
-        y: this.player.y,
-        alpha: 1
+    this.updateUI();
+  }
+
+  createCollectionParticles(x, y, color) {
+    for (let i = 0; i < 6; i++) {
+      this.particles.push({
+        x: x, y: y,
+        vx: (Math.random() - 0.5) * 8,
+        vy: (Math.random() - 0.5) * 8,
+        color: color,
+        life: 25,
+        maxLife: 25,
+        size: Math.random() * 5 + 2
       });
+    }
+  }
 
-      if (this.player.trail.length > 10) {
-        this.player.trail.shift();
+  spawnSkill() {
+    if (Math.random() < this.spawnRate) {
+      const skillType = this.skillTypes[Math.floor(Math.random() * this.skillTypes.length)];
+
+      this.skills.push({
+        x: Math.random() * (this.canvas.width - 50) + 25,
+        y: -30,
+        radius: 20,
+        speed: this.skillSpeed + Math.random() * 1.5,
+        color: skillType.color,
+        name: skillType.name,
+        points: skillType.points,
+        icon: skillType.icon,
+        rotation: 0,
+        rotationSpeed: (Math.random() - 0.5) * 0.1
+      });
+    }
+  }
+
+  updateSkills() {
+    for (let i = this.skills.length - 1; i >= 0; i--) {
+      const skill = this.skills[i];
+      skill.y += skill.speed;
+      skill.rotation += skill.rotationSpeed;
+
+      if (skill.y > this.canvas.height + 30) {
+        this.skills.splice(i, 1);
+        this.energy = Math.max(0, this.energy - 8);
+
+        if (this.energy <= 0) {
+          this.gameOver();
+        }
       }
     }
+  }
 
-    // Update trail alpha
-    this.player.trail.forEach((point, index) => {
-      point.alpha = index / this.player.trail.length * 0.5;
-    });
-
-    // Update cooldowns
-    if (this.player.dashCooldown > 0) this.player.dashCooldown--;
-    if (this.player.invulnerable > 0) this.player.invulnerable--;
-    if (this.comboTimer > 0) {
-      this.comboTimer--;
-    } else if (this.combo > 0) {
-      this.combo = 0;
-      document.getElementById('combo').textContent = this.combo;
-    }
-    if (this.screenshake > 0) this.screenshake--;
-
-    // Update skills with animation
-    this.skills.forEach(skill => {
-      skill.rotation += 0.05;
-      skill.bounce += 0.1;
-    });
-
-    // Update challenges
-    this.challenges.forEach(challenge => {
-      challenge.x += challenge.vx;
-      challenge.y += challenge.vy;
-      challenge.rotation += 0.08;
-
-      if (challenge.x <= 0 || challenge.x >= this.canvas.width - challenge.width) {
-        challenge.vx *= -1;
-      }
-      if (challenge.y <= 0 || challenge.y >= this.canvas.height - challenge.height) {
-        challenge.vy *= -1;
-      }
-    });
-
-    // Update milestones with glow effect
-    this.milestones.forEach(milestone => {
-      milestone.glow += 0.1;
-      milestone.scale = 1 + Math.sin(milestone.glow) * 0.1;
-    });
-
-    // Update powerups with pulse effect
-    this.powerups.forEach(powerup => {
-      powerup.pulse += 0.15;
-    });
-
-    // Update particles
-    this.particles = this.particles.filter(particle => {
+  updateParticles() {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const particle = this.particles[i];
       particle.x += particle.vx;
       particle.y += particle.vy;
+      particle.vx *= 0.95;
+      particle.vy *= 0.95;
       particle.life--;
-      particle.vx *= 0.98;
-      particle.vy *= 0.98;
-      return particle.life > 0;
-    });
 
-    // Check collisions
-    this.checkCollisions();
-
-    // Spawn new items periodically
-    if (Math.random() < 0.02) {
-      this.spawnNewItems();
-    }
-
-    // Level progression
-    if (this.score > this.level * 1000) {
-      this.level++;
-      this.player.speed = Math.min(10, this.player.speed + 0.5);
-      document.getElementById('level').textContent = this.level;
-
-      // Level up effects
-      for(let i = 0; i < 20; i++) {
-        this.particles.push({
-          x: this.player.x + this.player.width/2,
-          y: this.player.y + this.player.height/2,
-          vx: (Math.random() - 0.5) * 12,
-          vy: (Math.random() - 0.5) * 12,
-          life: 60,
-          color: '#f59e0b'
-        });
+      if (particle.life <= 0) {
+        this.particles.splice(i, 1);
       }
     }
-  }
-
-  checkCollisions() {
-    // Skills collision
-    this.skills.forEach((skill, index) => {
-      if (!skill.collected && this.isColliding(this.player, skill)) {
-        skill.collected = true;
-        this.combo++;
-        this.comboTimer = 180; // 3 seconds
-        let points = 100 * (this.combo > 1 ? this.combo : 1);
-        this.score += points;
-        this.spawnScoreEffect(skill.x, skill.y, points);
-        document.getElementById('score').textContent = this.score;
-        document.getElementById('combo').textContent = this.combo;
-
-        // Combo effect
-        if (this.combo > 2) {
-          this.spawnComboEffect(skill.x, skill.y);
-        }
-
-        // Skill collection particles
-        for(let i = 0; i < 8; i++) {
-          this.particles.push({
-            x: skill.x + skill.width/2,
-            y: skill.y + skill.height/2,
-            vx: (Math.random() - 0.5) * 6,
-            vy: (Math.random() - 0.5) * 6,
-            life: 40,
-            color: '#10b981'
-          });
-        }
-
-        setTimeout(() => {
-          this.skills.splice(index, 1);
-        }, 100);
-      }
-    });
-
-    // Milestones collision
-    this.milestones.forEach((milestone, index) => {
-      if (!milestone.collected && this.isColliding(this.player, milestone)) {
-        milestone.collected = true;
-        let points = 500 * (this.combo > 1 ? this.combo : 1);
-        this.score += points;
-        this.spawnScoreEffect(milestone.x, milestone.y, points);
-        this.spawnMilestoneEffect(milestone.x, milestone.y);
-        document.getElementById('score').textContent = this.score;
-
-        // Milestone particles
-        for(let i = 0; i < 15; i++) {
-          this.particles.push({
-            x: milestone.x + milestone.width/2,
-            y: milestone.y + milestone.height/2,
-            vx: (Math.random() - 0.5) * 8,
-            vy: (Math.random() - 0.5) * 8,
-            life: 60,
-            color: '#3b82f6'
-          });
-        }
-
-        setTimeout(() => {
-          this.milestones.splice(index, 1);
-        }, 100);
-      }
-    });
-
-    // Powerups collision
-    this.powerups.forEach((powerup, index) => {
-      if (!powerup.collected && this.isColliding(this.player, powerup)) {
-        powerup.collected = true;
-        this.applyPowerup(powerup.name);
-        this.spawnPowerupEffect(powerup.x, powerup.y, powerup.name);
-
-        setTimeout(() => {
-          this.powerups.splice(index, 1);
-        }, 100);
-      }
-    });
-
-    // Challenges collision (only if not invulnerable)
-    if (this.player.invulnerable <= 0) {
-      this.challenges.forEach(challenge => {
-        if (this.isColliding(this.player, challenge)) {
-          this.player.health -= 8;
-          this.player.health = Math.max(0, this.player.health);
-          this.player.invulnerable = 60; // 1 second invulnerability
-          this.screenshake = 15;
-          this.combo = 0; // Reset combo on hit
-          document.getElementById('health').textContent = this.player.health;
-          document.getElementById('combo').textContent = this.combo;
-
-          if (this.player.health <= 0) {
-            this.gameOver();
-          }
-
-          // Damage particles
-          for(let i = 0; i < 12; i++) {
-            this.particles.push({
-              x: this.player.x + this.player.width/2,
-              y: this.player.y + this.player.height/2,
-              vx: (Math.random() - 0.5) * 10,
-              vy: (Math.random() - 0.5) * 10,
-              life: 50,
-              color: '#ef4444'
-            });
-          }
-
-          // Push player away
-          const dx = this.player.x - challenge.x;
-          const dy = this.player.y - challenge.y;
-          const distance = Math.sqrt(dx*dx + dy*dy);
-          if (distance > 0) {
-            this.player.x += (dx/distance) * 25;
-            this.player.y += (dy/distance) * 25;
-          }
-        }
-      });
-    }
-  }
-
-  applyPowerup(name) {
-    switch(name) {
-      case 'Speed Boost':
-        this.player.speed += 2;
-        setTimeout(() => { this.player.speed -= 2; }, 5000);
-        break;
-      case 'Shield':
-        this.player.invulnerable = 300; // 5 seconds
-        break;
-      case 'Magnet':
-        // Pull all skills towards player
-        this.skills.forEach(skill => {
-          const dx = this.player.x - skill.x;
-          const dy = this.player.y - skill.y;
-          const distance = Math.sqrt(dx*dx + dy*dy);
-          if (distance < 200) {
-            skill.x += (dx/distance) * 3;
-            skill.y += (dy/distance) * 3;
-          }
-        });
-        break;
-      case 'Double Score':
-        // Next 10 collections are worth double
-        this.doubleScore = 10;
-        break;
-      case 'Health Pack':
-        this.player.health = Math.min(this.player.maxHealth, this.player.health + 30);
-        document.getElementById('health').textContent = this.player.health;
-        break;
-    }
-  }
-
-  isColliding(rect1, rect2) {
-    return rect1.x < rect2.x + rect2.width &&
-           rect1.x + rect1.width > rect2.x &&
-           rect1.y < rect2.y + rect2.height &&
-           rect1.y + rect1.height > rect2.y;
-  }
-
-  spawnNewItems() {
-    if (this.skills.length < 12) {
-      this.skills.push({
-        x: Math.random() * (this.canvas.width - 25),
-        y: Math.random() * (this.canvas.height - 25),
-        width: 25,
-        height: 25,
-        name: this.skillNames[Math.floor(Math.random() * this.skillNames.length)],
-        collected: false,
-        rotation: 0,
-        bounce: Math.random() * Math.PI * 2
-      });
-    }
-
-    if (this.milestones.length < 4) {
-      this.milestones.push({
-        x: Math.random() * (this.canvas.width - 35),
-        y: Math.random() * (this.canvas.height - 35),
-        width: 35,
-        height: 35,
-        name: this.milestoneNames[Math.floor(Math.random() * this.milestoneNames.length)],
-        collected: false,
-        scale: 1,
-        glow: 0
-      });
-    }
-
-    if (this.powerups.length < 3 && Math.random() < 0.3) {
-      this.powerups.push({
-        x: Math.random() * (this.canvas.width - 28),
-        y: Math.random() * (this.canvas.height - 28),
-        width: 28,
-        height: 28,
-        name: this.powerupNames[Math.floor(Math.random() * this.powerupNames.length)],
-        collected: false,
-        pulse: 0
-      });
-    }
-  }
-
-  spawnScoreEffect(x, y, points) {
-    const effect = document.createElement('div');
-    effect.textContent = `+${points}`;
-    effect.className = 'score-popup';
-    effect.style.left = x + 'px';
-    effect.style.top = y + 'px';
-    this.canvas.parentElement.appendChild(effect);
-
-    setTimeout(() => effect.remove(), 1000);
-  }
-
-  spawnComboEffect(x, y) {
-    const effect = document.createElement('div');
-    effect.textContent = `${this.combo}x COMBO!`;
-    effect.className = 'combo-text';
-    effect.style.left = x + 'px';
-    effect.style.top = y + 'px';
-    this.canvas.parentElement.appendChild(effect);
-
-    setTimeout(() => effect.remove(), 1500);
-  }
-
-  spawnMilestoneEffect(x, y) {
-    const effect = document.createElement('div');
-    effect.textContent = '🎉 MILESTONE! 🎉';
-    effect.style.position = 'absolute';
-    effect.style.left = x + 'px';
-    effect.style.top = y + 'px';
-    effect.style.color = '#f59e0b';
-    effect.style.fontWeight = 'bold';
-    effect.style.fontSize = '1.4rem';
-    effect.style.pointerEvents = 'none';
-    effect.style.animation = 'comboFloat 2s ease-out forwards';
-    this.canvas.parentElement.appendChild(effect);
-
-    setTimeout(() => effect.remove(), 2000);
-  }
-
-  spawnPowerupEffect(x, y, name) {
-    const effect = document.createElement('div');
-    effect.textContent = `⚡ ${name}!`;
-    effect.style.position = 'absolute';
-    effect.style.left = x + 'px';
-    effect.style.top = y + 'px';
-    effect.style.color = '#a855f7';
-    effect.style.fontWeight = 'bold';
-    effect.style.fontSize = '1.2rem';
-    effect.style.pointerEvents = 'none';
-    effect.style.animation = 'scoreFloat 1.5s ease-out forwards';
-    this.canvas.parentElement.appendChild(effect);
-
-    setTimeout(() => effect.remove(), 1500);
   }
 
   draw() {
-    // Apply screenshake
-    let shakeX = 0, shakeY = 0;
-    if (this.screenshake > 0) {
-      shakeX = (Math.random() - 0.5) * this.screenshake;
-      shakeY = (Math.random() - 0.5) * this.screenshake;
-    }
-
-    this.ctx.save();
-    this.ctx.translate(shakeX, shakeY);
-
-    // Clear canvas
-    this.ctx.fillStyle = '#1e293b';
+    const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+    gradient.addColorStop(0, '#1e293b');
+    gradient.addColorStop(1, '#334155');
+    this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw grid pattern
-    this.ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-    this.ctx.lineWidth = 1;
-    for(let x = 0; x < this.canvas.width; x += 40) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(x, 0);
-      this.ctx.lineTo(x, this.canvas.height);
-      this.ctx.stroke();
-    }
-    for(let y = 0; y < this.canvas.height; y += 40) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, y);
-      this.ctx.lineTo(this.canvas.width, y);
-      this.ctx.stroke();
-    }
-
-    // Draw player trail
-    this.player.trail.forEach(point => {
-      this.ctx.globalAlpha = point.alpha;
-      this.ctx.fillStyle = '#6366f1';
-      this.ctx.fillRect(point.x, point.y, this.player.width, this.player.height);
-    });
-    this.ctx.globalAlpha = 1;
-
-    // Draw player (Ritik) with invulnerability flash
-    if (this.player.invulnerable > 0 && Math.floor(this.player.invulnerable / 5) % 2) {
-      this.ctx.globalAlpha = 0.5;
-    }
-    this.ctx.fillStyle = this.player.invulnerable > 0 ? '#a855f7' : '#6366f1';
-    this.ctx.fillRect(this.player.x, this.player.y, this.player.width, this.player.height);
-    this.ctx.fillStyle = 'white';
-    this.ctx.font = 'bold 14px Inter';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('R', this.player.x + this.player.width/2, this.player.y + this.player.height/2 + 5);
-    this.ctx.globalAlpha = 1;
-
-    // Draw skills (animated golden stars)
+    // Draw skills
     this.skills.forEach(skill => {
-      if (!skill.collected) {
-        this.ctx.save();
-        this.ctx.translate(skill.x + skill.width/2, skill.y + skill.height/2);
-        this.ctx.rotate(skill.rotation);
-        this.ctx.fillStyle = '#f59e0b';
-        this.ctx.fillRect(-skill.width/2, -skill.height/2 + Math.sin(skill.bounce) * 3, skill.width, skill.height);
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '18px Inter';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('⭐', 0, 6);
-        this.ctx.restore();
-
-        // Skill name
-        this.ctx.font = '10px Inter';
-        this.ctx.fillStyle = 'white';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(skill.name, skill.x + skill.width/2, skill.y - 8);
-      }
-    });
-
-    // Draw milestones (animated blue diamonds)
-    this.milestones.forEach(milestone => {
-      if (!milestone.collected) {
-        this.ctx.save();
-        this.ctx.translate(milestone.x + milestone.width/2, milestone.y + milestone.height/2);
-        this.ctx.scale(milestone.scale, milestone.scale);
-
-        // Glow effect
-        this.ctx.shadowColor = '#3b82f6';
-        this.ctx.shadowBlur = 20;
-
-        this.ctx.fillStyle = '#3b82f6';
-        this.ctx.fillRect(-milestone.width/2, -milestone.height/2, milestone.width, milestone.height);
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '20px Inter';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('💎', 0, 7);
-        this.ctx.restore();
-
-        // Milestone name
-        this.ctx.font = '9px Inter';
-        this.ctx.fillStyle = '#3b82f6';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(milestone.name, milestone.x + milestone.width/2, milestone.y - 8);
-      }
-    });
-
-    // Draw powerups (pulsing purple)
-    this.powerups.forEach(powerup => {
-      if (!powerup.collected) {
-        const scale = 1 + Math.sin(powerup.pulse) * 0.2;
-        this.ctx.save();
-        this.ctx.translate(powerup.x + powerup.width/2, powerup.y + powerup.height/2);
-        this.ctx.scale(scale, scale);
-
-        this.ctx.fillStyle = '#a855f7';
-        this.ctx.fillRect(-powerup.width/2, -powerup.height/2, powerup.width, powerup.height);
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '16px Inter';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('⚡', 0, 6);
-        this.ctx.restore();
-
-        // Powerup name
-        this.ctx.font = '8px Inter';
-        this.ctx.fillStyle = '#a855f7';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(powerup.name, powerup.x + powerup.width/2, powerup.y - 8);
-      }
-    });
-
-    // Draw challenges (rotating red obstacles)
-    this.challenges.forEach(challenge => {
       this.ctx.save();
-      this.ctx.translate(challenge.x + challenge.width/2, challenge.y + challenge.height/2);
-      this.ctx.rotate(challenge.rotation);
-      this.ctx.fillStyle = '#ef4444';
-      this.ctx.fillRect(-challenge.width/2, -challenge.height/2, challenge.width, challenge.height);
-      this.ctx.fillStyle = 'white';
-      this.ctx.font = '18px Inter';
-      this.ctx.textAlign = 'center';
-      this.ctx.fillText('❌', 0, 6);
-      this.ctx.restore();
+      this.ctx.translate(skill.x, skill.y);
+      this.ctx.rotate(skill.rotation);
 
-      // Challenge name
-      this.ctx.font = '8px Inter';
-      this.ctx.fillStyle = '#ef4444';
+      // Glow effect
+      this.ctx.shadowColor = skill.color;
+      this.ctx.shadowBlur = 10;
+      this.ctx.fillStyle = skill.color;
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, skill.radius, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      // Icon
+      this.ctx.shadowBlur = 0;
+      this.ctx.fillStyle = 'white';
+      this.ctx.font = 'bold 16px Arial';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText(challenge.name, challenge.x + challenge.width/2, challenge.y - 8);
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText(skill.icon, 0, 0);
+
+      this.ctx.restore();
     });
 
     // Draw particles
     this.particles.forEach(particle => {
-      this.ctx.globalAlpha = particle.life / 60;
+      const alpha = particle.life / particle.maxLife;
+      this.ctx.save();
+      this.ctx.globalAlpha = alpha;
       this.ctx.fillStyle = particle.color;
-      this.ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4);
+      this.ctx.beginPath();
+      this.ctx.arc(particle.x, particle.y, particle.size * alpha, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.restore();
     });
-    this.ctx.globalAlpha = 1;
 
-    this.ctx.restore();
-
+    // Game instructions overlay
     if (!this.gameRunning) {
-      this.ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
       this.ctx.fillStyle = 'white';
-      this.ctx.font = '48px Inter';
+      this.ctx.font = 'bold 24px Arial';
       this.ctx.textAlign = 'center';
-      this.ctx.fillText('Game Over!', this.canvas.width/2, this.canvas.height/2 - 60);
-
-      this.ctx.font = '28px Inter';
-      this.ctx.fillText(`Final Score: ${this.score}`, this.canvas.width/2, this.canvas.height/2 - 10);
-
-      this.ctx.font = '20px Inter';
-      this.ctx.fillText(`Highest Level: ${this.level}`, this.canvas.width/2, this.canvas.height/2 + 30);
-
-      this.ctx.font = '16px Inter';
-      this.ctx.fillText('Refresh to play again', this.canvas.width/2, this.canvas.height/2 + 60);
+      this.ctx.fillText('Game Over!', this.canvas.width / 2, this.canvas.height / 2 - 30);
+      this.ctx.font = '16px Arial';
+      this.ctx.fillText('Refresh to play again', this.canvas.width / 2, this.canvas.height / 2 + 10);
     }
+  }
+
+  startGame() {
+    this.gameRunning = true;
+    this.updateUI();
   }
 
   gameOver() {
     this.gameRunning = false;
   }
 
+  updateUI() {
+    const scoreEl = document.getElementById('gameScore');
+    const skillsEl = document.getElementById('skillsCollected');
+    const energyEl = document.getElementById('gameEnergy');
+    const levelEl = document.getElementById('gameLevel');
+
+    if (scoreEl) scoreEl.textContent = this.score;
+    if (skillsEl) skillsEl.textContent = this.skillsCollected;
+    if (energyEl) energyEl.textContent = this.energy;
+    if (levelEl) levelEl.textContent = this.level;
+  }
+
   gameLoop() {
-    this.update();
+    if (this.gameRunning) {
+      this.spawnSkill();
+      this.updateSkills();
+      this.updateParticles();
+    }
     this.draw();
-    requestAnimationFrame(() => this.gameLoop());
+  }
+
+  animate() {
+    this.gameLoop();
+    requestAnimationFrame(() => this.animate());
   }
 }
 
-// Initialize enhanced game
-let game;
-setTimeout(() => {
-  game = new EnhancedCareerGame();
-}, 2000);
-
-// ATS-Friendly PDF Download Function
-function downloadATSResume() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'pt', 'a4');
-
-  // Set up ATS-friendly formatting
-  doc.setFont('Arial', 'normal');
-
-  // Header
-  doc.setFontSize(24);
-  doc.setFont('Arial', 'bold');
-  doc.text('Ritik Kumar Gautam', 50, 50);
-
-  doc.setFontSize(14);
-  doc.setFont('Arial', 'normal');
-  doc.text('Digital Marketing Strategist | Game Developer | Content Creator', 50, 75);
-
-  // Contact Information
-  doc.setFontSize(12);
-  doc.text('Phone: +91 7017984397', 50, 100);
-  doc.text('Email: entrepreneurritik@gmail.com', 300, 100);
-  doc.text('Website: https://gamegini.in', 50, 120);
-  doc.text('YouTube: https://www.youtube.com/@TechyRitik/videos', 300, 120);
-
-  // Professional Summary
-  doc.setFontSize(16);
-  doc.setFont('Arial', 'bold');
-  doc.text('PROFESSIONAL SUMMARY', 50, 160);
-
-  doc.setFontSize(12);
-  doc.setFont('Arial', 'normal');
-  const summaryText = 'Results-driven Digital Marketing Strategist and Game Developer with proven track record of scaling digital platforms and content channels. Founded GameGini.in gaming platform, achieving AdSense approval and organic growth. Successfully grew YouTube channel to 15,000+ subscribers with millions of views. Expert in SEO, content strategy, team leadership, and game development using GDevelop and modern web technologies.';
-  const splitSummary = doc.splitTextToSize(summaryText, 500);
-  doc.text(splitSummary, 50, 180);
-
-  // Work Experience
-  doc.setFontSize(16);
-  doc.setFont('Arial', 'bold');
-  doc.text('WORK EXPERIENCE', 50, 250);
-
-  doc.setFontSize(14);
-  doc.setFont('Arial', 'bold');
-  doc.text('Founder & CEO | GameGini.in', 50, 280);
-  doc.setFontSize(12);
-  doc.setFont('Arial', 'normal');
-  doc.text('2023 - Present', 400, 280);
-
-  const exp1 = [
-    '• Built comprehensive gaming platform from concept to launch using GDevelop and Vibe Coding',
-    '• Achieved Google AdSense approval through strategic content optimization and SEO implementation',
-    '• Developed and integrated multiple interactive mini-games for enhanced user engagement',
-    '• Implemented scalable SEO strategies driving consistent organic traffic growth'
-  ];
-  let yPos = 300;
-  exp1.forEach(bullet => {
-    doc.text(bullet, 50, yPos);
-    yPos += 20;
-  });
-
-  doc.setFontSize(14);
-  doc.setFont('Arial', 'bold');
-  doc.text('Content Strategy Consultant | TechyRitik/HeroBoys', 50, yPos + 20);
-  doc.setFontSize(12);
-  doc.setFont('Arial', 'normal');
-  doc.text('2022 - 2023', 400, yPos + 20);
-
-  yPos += 40;
-  const exp2 = [
-    '• Scaled YouTube channel from startup to 15,000+ active subscribers',
-    '• Generated millions of cumulative views through viral content strategies',
-    '• Implemented advanced YouTube analytics for data-driven decision making',
-    '• Created comprehensive content calendar and posting optimization system'
-  ];
-  exp2.forEach(bullet => {
-    doc.text(bullet, 50, yPos);
-    yPos += 20;
-  });
-
-  doc.setFontSize(14);
-  doc.setFont('Arial', 'bold');
-  doc.text('Team Leader | Paytm QR Code Campaign', 50, yPos + 20);
-  doc.setFontSize(12);
-  doc.setFont('Arial', 'normal');
-  doc.text('2022', 400, yPos + 20);
-
-  yPos += 40;
-  const exp3 = [
-    '• Managed and mentored team of 10 recruitment specialists',
-    '• Integrated WhatsApp API for streamlined candidate communication',
-    '• Developed and implemented scalable recruitment processes',
-    '• Achieved consistent targets through innovative team management'
-  ];
-  exp3.forEach(bullet => {
-    doc.text(bullet, 50, yPos);
-    yPos += 20;
-  });
-
-  // Skills
-  doc.setFontSize(16);
-  doc.setFont('Arial', 'bold');
-  doc.text('CORE SKILLS', 50, yPos + 40);
-
-  doc.setFontSize(12);
-  doc.setFont('Arial', 'normal');
-  yPos += 60;
-  const skills = [
-    'Digital Marketing: SEO, SEM, Social Media Marketing, Google Analytics, Meta Ads',
-    'Game Development: GDevelop, Vibe Coding, Interactive Media, Game Design',
-    'Technical: Python, WordPress, Blogger, HTML, CSS, JavaScript, API Integration',
-    'Leadership: Team Management, Project Leadership, Strategic Planning, Client Relations'
-  ];
-  skills.forEach(skill => {
-    doc.text(`• ${skill}`, 50, yPos);
-    yPos += 20;
-  });
-
-  // Education
-  doc.setFontSize(16);
-  doc.setFont('Arial', 'bold');
-  doc.text('EDUCATION', 50, yPos + 20);
-
-  doc.setFontSize(12);
-  doc.setFont('Arial', 'normal');
-  yPos += 40;
-  doc.text('Bachelor of Computer Applications (BCA) | Amity University Online | Expected 2027', 50, yPos);
-  doc.text('12th Grade - Science Stream | CBSE Board | 2021', 50, yPos + 20);
-  doc.text('10th Grade | CBSE Board | 2019', 50, yPos + 40);
-
-  // Key Achievements
-  doc.setFontSize(16);
-  doc.setFont('Arial', 'bold');
-  doc.text('KEY ACHIEVEMENTS', 50, yPos + 80);
-
-  doc.setFontSize(12);
-  doc.setFont('Arial', 'normal');
-  yPos += 100;
-  const achievements = [
-    '• Founded and successfully monetized GameGini.in gaming platform',
-    '• Achieved Google AdSense approval through strategic content optimization',
-    '• Grew YouTube channel to 15,000+ subscribers and millions of views',
-    '• Led 10-member team for large-scale QR code adoption campaign',
-    '• Integrated WhatsApp API for improved communication and conversion rates'
-  ];
-  achievements.forEach(achievement => {
-    doc.text(achievement, 50, yPos);
-    yPos += 20;
-  });
-
-  // Add clickable links (ATS systems can handle these)
-  doc.link(50, 110, 200, 15, {url: 'https://gamegini.in'});
-  doc.link(300, 110, 250, 15, {url: 'https://www.youtube.com/@TechyRitik/videos'});
-
-  doc.save('Ritik_Kumar_Gautam_ATS_Resume.pdf');
-}
-
-// Initialize particles
-createParticles();
-setInterval(createParticles, 10000);
-
-// Smooth scrolling for internal links
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-  anchor.addEventListener('click', function (e) {
-    e.preventDefault();
-    document.querySelector(this.getAttribute('href')).scrollIntoView({
-      behavior: 'smooth'
-    });
-  });
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  createParticles();
+  new TapSkillCollectorGame();
+  setInterval(createParticles, 20000);
 });
-
-// Add some interactive hover effects
-document.querySelectorAll('.glass-card').forEach(card => {
-  card.addEventListener('mouseenter', function() {
-    this.style.background = 'rgba(255,255,255,0.08)';
-  });
-
-  card.addEventListener('mouseleave', function() {
-    this.style.background = 'rgba(255,255,255,0.05)';
-  });
-});
-
-console.log('🚀 Ritik Kumar Gautam - Enhanced Interactive Resume Loaded!');
-console.log('🎮 Enhanced Career Quest Game: WASD/Arrows + SPACE for dash!');
-console.log('⚡ Features: Combos, Power-ups, Particles, Screen shake, Trail effects!');
-console.log('📄 ATS-friendly PDF download with clickable links!');
-console.log('✨ Thanks for checking out this next-level experience!');
 </script>
 
 </body>
